@@ -1,41 +1,51 @@
-# Logstash ks3 Output Plugin
+# Logstash KS3 Output Plugin
 
 This is a plugin for [Logstash](https://github.com/elastic/logstash).
 
 It is fully free and fully open source. The license is Apache 2.0, meaning you are pretty much free to use it however you want in whatever way.
 
-## Documentation
-This plugin batches and uploads logstash events into Ksyun Object Storage Service (Ksyun ks3).
+## 文档 Documentation
+
+该插件可以累积上传 logstash events 到 KS3
+
+This plugin batches and uploads logstash events into Ksyun Object Storage Service (Ksyun KS3).
+
+
+首先，你需要拥有 KS3 的权限 (ak/sk) 和一个可写的bucket
 
 First, you should have a writable bucket and ks3 access permissions((Typically access_key_id and access_key_secret)).
 
+
+上传到 KS3 前，该插件会将文件写到临时目录
+
 ks3 output plugin creates temporary files into the OS' temporary directory(You can set this configuration by **temporary_directory** option) before uploading them to ks3.
 
+
+临时文件路径如下：
+
 ks3 output plugin output files have the following format
+
 ```bash
-/tmp/logstash/ks3/eaced620-e972-0136-2a14-02b7449ba0a9/logstash/1/ls.ks3.eaced620-e972-0136-2a14-02b7449ba0a9.2018-12-24T14.27.part-0.data
+/tmp/logstash/ks3/eaced620-e972-0136-2a14-02b7449ba0a9/logstash/1/ls.ks3.e27ff60b-98eb-42f8-87bb-09cdb56102c2.2021-08-03T20.16.part-0.data
 ```
 
 |||
 |---|---|
-|/tmp/logstash/ks3| OS' temporary directory specified by **temporary_directory** option |
-|eaced620-e972-0136-2a14-02b7449ba0a9 | random uuid |
-|logstash/1|ks3 object prefix|
-|ls.ks3|indicate Logstash ks3 output plugin|
-|eaced620-e972-0136-2a14-02b7449ba0a9 | random uuid |
-|2018-12-24T14.27 | represents the file created time |
-|part-0|This is the nth file of this prefix|
-|.data|output suffix, if you set `encoding` to gzip , it will ends with .gz, else ends with .data|
+|/tmp/logstash/ks3| **temporary_directory** 选项指定的临时目录，默认为系统临时目录 |
+|eaced620-e972-0136-2a14-02b7449ba0a9 | 随机 uuid |
+|logstash/1|ks3 对象前缀|
+|ls.ks3|标明是 logstash 插件|
+|eaced620-e972-0136-2a14-02b7449ba0a9 | 随机 uuid |
+|2018-12-24T14.27 | 创建时间 |
+|part-0|分块|
+|.data|后缀, `encoding` 是 gzip 的话，结尾为 .gz ，其他是 .data|
 
-
-This plugin also supports crash recovery, you can set configuration **recover** to true if you want to recover from abnormal crash.
-
-### Usage:
-This is an example of logstash config:
+### 使用方法
+样例:
 ```ruby
 input {
   file {
-    path => "/etc/logstash-6.5.3/sample.data"
+    path => "/etc/logstash-7.3.0/sample.data"
     codec => json {
       charset => "UTF-8"
     }
@@ -44,19 +54,19 @@ input {
 
 output {
   ks3 {
-    "endpoint" => "ks3 endpoint to connect to"              (required)
-    "bucket" => "Your bucket name"                          (required)
-    "access_key_id" => "Your access key id"                 (required)
-    "access_key_secret" => "Your access secret key"         (required)
-    "prefix" => "logstash/%{index}"                         (optional, default = "")
-    "recover" => true                                       (optional, default = true)
-    "rotation_strategy" => "size_and_time"                  (optional, default = "size_and_time")
-    "time_rotate" => 15                                     (optional, default = 15) - Minutes
-    "size_rotate" => 31457280                               (optional, default = 31457280) - Bytes
-    "encoding" => "gzip"                                    (optional, default = "none")
-    "additional_ks3_settings" => {
-      "max_connections_to_ks3" => 1024                      (optional, default = 1024)
-      "secure_connection_enabled" => false                  (optional, default = false)
+    endpoint => "ks3 endpoint"                            (required)
+    bucket => "bucket"                                    (required)
+    access_key_id => "ak"                                 (required)
+    access_key_secret => "sk"                             (required)
+    prefix => "logstash/ks3"                              (optional, default = "")
+    recover => true                                       (optional, default = true)
+    rotation_strategy => "size_and_time"                  (optional, default = "size_and_time")
+    time_rotate => 15                                     (optional, default = 15) - Minutes
+    size_rotate => 31457280                               (optional, default = 31457280) - Bytes
+    encoding => "gzip"                                    (optional, default = "none")
+    additional_ks3_settings => {                          (optional, default = 1024)
+      secure_connection_enabled => false                  (optional, default = false)
+      server_side_encryption_algorithm => "AES256"        (optional, default = "none")
     }
     codec => json {
       charset => "UTF-8"
@@ -65,108 +75,78 @@ output {
 }
 ```
 
-### Logstash ks3 Output Configuration Options
-This plugin supports the following configuration options
+### 插件配置文件选项
 
 |Configuration|Type|Required|Comments|
 |:---:|:---:|:---:|:---|
-|endpoint|string|Yes|ks3 endpoint to connect|
-|bucket|string|Yes|Your ks3 bucket name|
-|access_key_id|string|Yes|Your access key id|
-|access_key_secret|string|Yes|Your access secret key|
-|prefix|string|No|Prefix that added to the generated file name(WARNING: this option supports string interpolation, so it may create a lot of temporary local files)|
-|additional_ks3_settings|hash|No|Additional ks3 client configurations, valid keys are: `server_side_encryption_algorithm`, `secure_connection_enabled` and `max_connections_to_ks3`|
-|temporary_directory|string|No|Temporary directory that used to cache events before uploading to ks3, default is /{OS' tmp dir}/logstash/ks3|
-|rotation_strategy|string|No|File rotation strategy. Options are `size`, `time` and `size_and_time`|
-|size_rotate|number|No|Rotate this file if its size greater than or equal to `size_rotate`(depends on `rotation_strategy`)|
-|time_rotate|number|No|Rotate this file if its life time greater than or equal to `time_rotate`(depends on `rotation_strategy`)|
-|upload_workers_count|number|No|Concurrent number of upload threads|
-|upload_queue_size|number|No|Upload queue size|
-|encoding|string|No|Support plain and gzip compression before uploading files to ks3. Options are `gzip` and `none`|
+|endpoint|string|Yes|endpoint|
+|bucket|string|Yes|bucket|
+|access_key_id|string|Yes|ak|
+|access_key_secret|string|Yes|sk|
+|prefix|string|No|前缀|
+|recover|string|No|插件支持崩溃恢复crash recovery, 可以设置 **recover** 为true，来从异常崩溃中恢复上传。|
+|additional_ks3_settings|hash|No|附加的客户端配置: `server_side_encryption_algorithm`（服务端加密算法）, `secure_connection_enabled` （是否安全连接https/http）|
+|temporary_directory|string|No|指定的临时目录，默认为系统临时目录|
+|rotation_strategy|string|No|文件滚动更新策略。可选值：size、time、size_and_time（默认）|
+|size_rotate|number|No|如果文件大小大于等于size_rotate，将滚动更新文件（依赖rotation_strategy）。默认为30 MBytes|
+|time_rotate|number|No|如果文件的生存时长大于等于time_rotate，将滚动更新文件（依赖rotation_strategy）。默认为15分钟|
+|upload_workers_count|number|No|上传线程并发数|
+|upload_queue_size|number|No|上传队列大小|
+|encoding|string|No|是否启用gzip压缩 `gzip` and `none`|
 
-## Need Help?
-
-Need help? Try #logstash on freenode IRC or the https://discuss.elastic.co/c/logstash discussion forum.
-
-## Deployment
-This plugin has been submitted to [RubyGems.org](https://rubygems.org/gems/logstash-output-ks3), and Logstash uses RubyGems.org as its repository for all plugin artifacts.
-So you can simply install this plugin in your Logstash home directory by:
+## 部署
 
 ```bash
-./bin/logstash-plugin install logstash-output-ks3
+./bin/logstash-plugin install /logstash-output-ks3/logstash-output-ks3-0.0.1-java.gem
 ```
 And you will get following message:
 
 ```bash
 Validating logstash-output-ks3
 Installing logstash-output-ks3
-      com.aliyun.ks3:aliyun-sdk-ks3:3.4.0:compile
 Installation successful
 ```
 
-You can also list plugins by:
+查看插件 :
 ```bash
 ./bin/logstash-plugin list --verbose logstash-output-ks3
 
-logstash-output-ks3 (0.1.1)
+logstash-output-ks3 (0.0.1)
 ```
 
-## Developing
+## 开发
 
-### 1. Plugin Developement and Testing
+### 1. 插件开发测试
 
 #### Code
-- To get started, you'll need JRuby with the Bundler gem installed.
+- 开始前需要JRuby
 
-- Install dependencies
+- 安装依赖
 ```sh
 bundle install
 ```
 
-#### Test
+### 2. 在 Logstash 运行你的插件
 
-- Update your dependencies
+#### 2.1 编译、安装、运行
 
-```sh
-bundle install
-```
-
-- Run tests
-
-```sh
-bundle exec rspec
-```
-
-### 2. Running your unpublished Plugin in Logstash
-
-#### 2.1 Run in an installed Logstash
-
-you can build the gem and install it using:
-
-- Build your plugin gem
+- 编译
 
 ```sh
 gem build logstash-output-ks3.gemspec
 ```
 
-- Install the plugin from the Logstash home
+- 安装到logstash
 
 ```sh
 bin/logstash-plugin install /path/to/logstash-output-ks3-0.1.1-java.gem
 ```
 
-- Start Logstash and proceed to test the plugin
+- 在logstash测试
 
 ```bash
 ./bin/logstash -f config/logstash-sample.conf
 ```
 
-## Contributing
-
-All contributions are welcome: ideas, patches, documentation, bug reports, complaints, and even something you drew up on a napkin.
-
-Programming is not a required skill. Whatever you've seen about open source and maintainers or community members  saying "send patches or die" - you will not see that here.
-
-It is more important to the community that you are able to contribute.
-
-For more information about contributing, see the [CONTRIBUTING](https://github.com/elastic/logstash/blob/master/CONTRIBUTING.md) file.
+## 引用
+[logstash-output-oss](https://github.com/aliyun/logstash-output-oss)
