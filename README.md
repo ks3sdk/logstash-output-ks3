@@ -8,22 +8,20 @@ It is fully free and fully open source. The license is Apache 2.0, meaning you a
 
 该插件可以累积上传 logstash events 到 KS3
 
-This plugin batches and uploads logstash events into Ksyun Object Storage Service (Ksyun KS3).
-
-
 首先，你需要拥有 KS3 的权限 (ak/sk) 和一个可写的bucket
-
-First, you should have a writable bucket and ks3 access permissions((Typically access_key_id and access_key_secret)).
-
 
 上传到 KS3 前，该插件会将文件写到临时目录
 
-ks3 output plugin creates temporary files into the OS' temporary directory(You can set this configuration by **temporary_directory** option) before uploading them to ks3.
+_This plugin batches and uploads logstash events into Ksyun Object Storage Service (Ksyun KS3)._
+
+_First, you should have a writable bucket and ks3 access permissions((Typically access_key_id and access_key_secret))._
+
+_ks3 output plugin creates temporary files into the OS' temporary directory(You can set this configuration by **temporary_directory** option) before uploading them to ks3._
 
 
 临时文件路径如下：
 
-ks3 output plugin output files have the following format
+_ks3 output plugin output files have the following format_
 
 ```bash
 /tmp/logstash/ks3/eaced620-e972-0136-2a14-02b7449ba0a9/logstash/1/ls.ks3.e27ff60b-98eb-42f8-87bb-09cdb56102c2.2021-08-03T20.16.part-0.data
@@ -99,7 +97,7 @@ output {
 ```bash
 ./bin/logstash-plugin install /logstash-output-ks3/logstash-output-ks3-0.0.1-java.gem
 ```
-And you will get following message:
+结果如下：
 
 ```bash
 Validating logstash-output-ks3
